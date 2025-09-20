@@ -2,8 +2,8 @@ name: Build and Release Plugin
 
 on:
   push:
-    tags:
-      - 'v*'  # Trigger on version tags like v1.0.0
+    branches:
+      - main   # Trigger only on main branch
   workflow_dispatch:
 
 jobs:
@@ -36,17 +36,13 @@ jobs:
       - name: Build Plugin
         run: ./gradlew clean build
 
-      - name: Create Release
-        id: create_release
+      - name: Create or Update Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Plugin JAR
-        uses: softprops/action-gh-release@v1
-        with:
+          tag_name: latest
+          name: "Latest Build"
+          draft: false
+          prerelease: true
           files: build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
