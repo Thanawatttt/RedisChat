@@ -1,37 +1,49 @@
-name: Build and Release zEssentials
+name: Build and Release Plugin
 
 on:
-  workflow_dispatch:
-
-permissions:
-  contents: write   # ให้สิทธิ์เขียน release/tags
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout this repo
-        uses: actions/checkout@v4
-
-      - name: Clone redis repo
-        run: https://github.com/Emibergo02/RedisChat.git
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          java-version: 17
+          distribution: temurin
 
-      - name: Build with Gradle
-        working-directory: RedisChat
-        run: ./gradlew build
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Build Plugin
+        run: ./gradlew clean build
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        id: create_release
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: build-${{ github.run_number }}
-          name: "Build ${{ github.run_number }}"
-          files: zEssentials/build/libs/*.jar
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Plugin JAR
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
